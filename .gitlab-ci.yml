@@ -1,11 +1,5 @@
 image: node:latest
 
-services:
-  - redis:latest
-
-variables:
-  REDIS_URL: redis://redis:6379
-
 # This folder is cached between builds
 cache:
   paths:
@@ -37,6 +31,12 @@ lint:
 
 #### Unit Tests ####
 test_backend:
+  services:
+    - redis:latest
+
+  variables:
+    REDIS_URL: redis://redis:6379
+  
   stage: test
   script:
    - cd backend
