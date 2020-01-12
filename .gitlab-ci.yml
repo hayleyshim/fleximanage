@@ -33,11 +33,6 @@ lint:
   stage: lint
   script:
     - cd backend
-    - ls -la
-    - ls .eslintrc.js
-    - pwd
-    - ls /builds/flexiwangroup/fleximanage/backend
-    - npm ci
     - npx eslint ./
 
 #### Unit Tests ####
