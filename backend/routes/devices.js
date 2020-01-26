@@ -465,8 +465,8 @@ devicesRouter.route('/:deviceId/apply')
             const routes = device.staticroutes.map(value => {
                 return {
                     id: value.id,
-                    destination_network: value.destination,
-                    gateway_ip: value.gateway,
+                    destination: value.destination,
+                    gateway: value.gateway,
                     ifname: value.ifname,
                     status: value.status
                 }

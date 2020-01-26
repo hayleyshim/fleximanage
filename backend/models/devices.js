@@ -165,11 +165,6 @@ const staticroutesSchema = new Schema({
     ifname: {
         type: String
     },
-    // status
-    status: {
-        type: String,
-        default: "failed"
-    }
 }, {
     timestamps: true
 });
