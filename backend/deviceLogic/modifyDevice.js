@@ -278,6 +278,81 @@ const rollBackDeviceChanges = (origDevice) => {
         return resolve();
     });
 };
+
+/**
+ * Creates a modify-routes object
+ * @param  {Object} origDevice device object before changes in the database
+ * @param  {Object} newDevice  device object after changes in the database
+ * @return {Object}            an object containing an array of routes
+ */
+const prepareModifyRoutes = (origDevice, newDevice) => {
+    // Handle changes in default route
+    const routes = [];
+    if(origDevice.defaultRoute !== newDevice.defaultRoute) {
+        routes.push({
+            addr: "default",
+            old_route: origDevice.defaultRoute,
+            new_route: newDevice.defaultRoute
+        })
+    }
+
+    // Handle changes in static routes
+    // Extract only relevant fields from static routes database entries
+    const [newStaticRoutes, origStaticRoutes] = [
+        newDevice.staticroutes.map(route => { return ({
+            destination: route.destination,
+            gateway: route.gateway,
+            ifname: route.ifname
+        });}),
+
+        origDevice.staticroutes.map(route => { return ({
+            destination: route.destination,
+            gateway: route.gateway,
+            ifname: route.ifname
+        });})
+    ];
+
+    // Compare new and original static routes arrays.
+    // Add all static routes that do not exist in the
+    // original routes array and remove all static routes
+    // that do not appear in the new routes array
+    const [routesToAdd, routesToRemove] = [
+        differenceWith(
+            newStaticRoutes,
+            origStaticRoutes,
+            (origRoute, newRoute) => {
+                return isEqual(origRoute, newRoute);
+            }
+        ),
+        differenceWith(
+            origStaticRoutes,
+            newStaticRoutes,
+            (origRoute, newRoute) => {
+                return isEqual(origRoute, newRoute);
+            }
+        )
+    ]
+
+    routesToRemove.forEach(route => {
+        routes.push({
+            addr: route.destination,
+            old_route: route.gateway,
+            new_route: '',
+            pci: route.ifname ? route.ifname : undefined
+        })
+    })
+    routesToAdd.forEach(route => {
+        routes.push({
+            addr: route.destination,
+            new_route: route.gateway,
+            old_route: '',
+            pci: route.ifname ? route.ifname : undefined
+        })
+    })
+
+    return { routes: routes };
+}
+
 /**
  * Creates and queues the modify-device job. It compares
  * the current view of the device in the database with
@@ -299,15 +374,8 @@ const apply = async(device, req, res, next, data) => {
         const modifyParams = {};
 
         // Create the default route modification parameters
-        if(device[0].defaultRoute !== data.newDevice.defaultRoute) {
-            modifyParams.modify_routes = {
-                routes: [{
-                    addr: "default",
-                    old_route: device[0].defaultRoute,
-                    new_route:  data.newDevice.defaultRoute
-                }]
-            };
-        }
+        const modify_routes = prepareModifyRoutes(device[0], data.newDevice);
+        if (modify_routes.routes.length > 0) modifyParams.modify_routes = modify_routes;
 
         // Create interfaces modification parameters
         // Compare the array of interfaces, and return
