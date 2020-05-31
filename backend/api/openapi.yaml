@@ -2409,6 +2409,8 @@ paths:
           - fwagent
           - syslog
           - dhcp
+          - vpp
+          - frr
           type: string
         style: form
       responses:
